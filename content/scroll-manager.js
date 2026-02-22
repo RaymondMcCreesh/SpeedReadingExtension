@@ -86,9 +86,10 @@ class ScrollManager {
   needsPageTurn(lineWords) {
     const rect = this._getFirstWordRect(lineWords);
     if (!rect) return false;
-    // Turn the page only when the line is genuinely off the bottom of the
-    // visible area — not early, which would skip visible lines.
-    return rect.top >= window.innerHeight;
+    // Turn the page when the line's bottom edge is at or below the viewport
+    // bottom — i.e. the line is even partially cut off. This prevents reading
+    // half-obscured lines at the bottom before the page turns.
+    return rect.bottom >= window.innerHeight;
   }
 
   /**

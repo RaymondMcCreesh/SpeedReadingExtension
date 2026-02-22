@@ -300,9 +300,11 @@ class EyeMovementEngine {
     // to drift back down to VIEWPORT_TARGET_RATIO after the page-turn).
     this.scrollManager.onAfterScroll = null;
 
-    // 2. Flash the start word — track this as non-reading dead time
+    // 2. Hold the highlight solid on the first word so the eye can find its
+    // anchor without the distraction of flashing.
     const flashStart = performance.now();
-    await this.highlighter.flashWords(nextLine.slice(0, 1), 3, 200);
+    this.highlighter.highlight(nextLine.slice(0, 1));
+    await new Promise(resolve => setTimeout(resolve, 600));
     this._totalLineBreakMs += performance.now() - flashStart;
 
     // 3. Guard: might have been stopped during the flash
