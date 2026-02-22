@@ -99,8 +99,8 @@ class ScrollManager {
     const rect = this._getFirstWordRect(lineWords);
     if (!rect) return;
 
-    // Place the new line at the very top of the viewport with a small top margin
-    const TOP_MARGIN_PX = 20;
+    // Place the new line just below any sticky/fixed header, plus a small gap
+    const TOP_MARGIN_PX = 20 + this._getStickyHeaderHeight();
     const target = window.scrollY + rect.top - TOP_MARGIN_PX;
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
     const clamped = Math.max(0, Math.min(maxScroll, target));
@@ -114,14 +114,17 @@ class ScrollManager {
   // ---------------------------------------------------------------------------
 
   /**
-   * Scroll instantly so the given line sits at VIEWPORT_TARGET_RATIO.
+   * Scroll instantly so the given line sits at VIEWPORT_TARGET_RATIO,
+   * offset below any sticky/fixed header so the line is never obscured.
    * Returns true if the scroll position actually changed.
    */
   _scrollToLine(lineWords) {
     const rect = this._getFirstWordRect(lineWords);
     if (!rect) return false;
 
-    const target = window.scrollY + rect.top - (window.innerHeight * this.VIEWPORT_TARGET_RATIO);
+    const headerHeight = this._getStickyHeaderHeight();
+    const usableHeight = window.innerHeight - headerHeight;
+    const target = window.scrollY + rect.top - headerHeight - (usableHeight * this.VIEWPORT_TARGET_RATIO);
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
     const clamped = Math.max(0, Math.min(maxScroll, target));
 
@@ -137,20 +140,44 @@ class ScrollManager {
   }
 
   /**
-   * Only scroll if the line is within VIEWPORT_MARGIN_PX of the viewport edge.
+   * Only scroll if the line is within VIEWPORT_MARGIN_PX of the viewport edge,
+   * or hidden behind a sticky/fixed header at the top.
    * Returns true if a scroll occurred.
    */
   _ensureLineVisible(lineWords) {
     const rect = this._getFirstWordRect(lineWords);
     if (!rect) return false;
 
-    const nearTop    = rect.top < this.VIEWPORT_MARGIN_PX;
+    const safeTop    = this.VIEWPORT_MARGIN_PX + this._getStickyHeaderHeight();
+    const nearTop    = rect.top < safeTop;
     const nearBottom = rect.bottom > window.innerHeight - this.VIEWPORT_MARGIN_PX;
 
     if (nearTop || nearBottom) {
       return this._scrollToLine(lineWords);
     }
     return false;
+  }
+
+  /**
+   * Measure the height of any fixed or sticky elements anchored to the top of
+   * the viewport (e.g. site navigation bars, cookie banners).
+   * Returns 0 if none found. Result is not cached — call site decides frequency.
+   */
+  _getStickyHeaderHeight() {
+    let maxHeight = 0;
+    const candidates = document.querySelectorAll(
+      'header, nav, [role="banner"], [role="navigation"]'
+    );
+    for (const el of candidates) {
+      const style = window.getComputedStyle(el);
+      if (style.position !== 'fixed' && style.position !== 'sticky') continue;
+      const rect = el.getBoundingClientRect();
+      // Only count elements that are genuinely at the top of the viewport
+      if (rect.top <= 10 && rect.height > 0) {
+        maxHeight = Math.max(maxHeight, rect.bottom);
+      }
+    }
+    return maxHeight;
   }
 
   _getFirstWordRect(lineWords) {

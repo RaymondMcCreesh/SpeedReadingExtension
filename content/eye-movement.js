@@ -295,6 +295,11 @@ class EyeMovementEngine {
     // 1. Hard scroll — instant, so getBoundingClientRect() is correct immediately
     this.scrollManager.executePageTurn(nextLine);
 
+    // Clear the callback immediately after the scroll fires so it cannot be
+    // triggered by any subsequent line advance (which would cause the viewport
+    // to drift back down to VIEWPORT_TARGET_RATIO after the page-turn).
+    this.scrollManager.onAfterScroll = null;
+
     // 2. Flash the start word — track this as non-reading dead time
     const flashStart = performance.now();
     await this.highlighter.flashWords(nextLine.slice(0, 1), 3, 200);
