@@ -1,0 +1,243 @@
+/*
+ * overlay.css — Injected into every page via manifest.json content_scripts.
+ * Declared in manifest (not via JS) so it is never blocked by Content Security Policy.
+ * All extension elements use pointer-events:none to let clicks pass through.
+ */
+
+/* ─── Overlay Container ──────────────────────────────────────────────────── */
+#sr-highlight-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 2147483645; /* Just below max, above most page content */
+  overflow: hidden;
+}
+
+/* ─── Highlight Rectangle ────────────────────────────────────────────────── */
+.sr-highlight-rect {
+  position: fixed;
+  border-radius: 3px;
+  pointer-events: none;
+  display: none;
+
+  /* Only animate lateral movement within a line — left/width slide smoothly.
+     top has NO transition so line changes are instant (no cross-line sliding). */
+  transition:
+    left    80ms ease-out,
+    width   80ms ease-out,
+    opacity 150ms ease;
+
+  mix-blend-mode: multiply;
+  will-change: left, top, width, opacity;
+}
+
+/* During return sweep: rect is already positioned at next line (no transition),
+   we just fade it in from dim to full opacity to signal the eye return. */
+.sr-highlight-rect.sr-return-sweep {
+  opacity: 0.15 !important;
+  transition: opacity var(--sr-sweep-duration, 150ms) ease-out;
+}
+
+/* ─── Progress Bar ───────────────────────────────────────────────────────── */
+#sr-progress-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 0%;
+  background: linear-gradient(90deg, #2196F3, #42A5F5);
+  z-index: 2147483646;
+  pointer-events: none;
+  transition: width 600ms linear;
+  border-radius: 0 2px 2px 0;
+}
+
+/* ─── Status Badge (Paused / Done indicator) ─────────────────────────────── */
+#sr-status-badge {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  background: rgba(0, 0, 0, 0.72);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 250ms ease;
+  white-space: nowrap;
+}
+
+#sr-status-badge.sr-visible {
+  opacity: 1;
+}
+
+/* ─── "No content found" toast ───────────────────────────────────────────── */
+#sr-no-content-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(50, 50, 50, 0.90);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: system-ui, -apple-system, sans-serif;
+  z-index: 2147483647;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 300ms ease;
+  max-width: 320px;
+  text-align: center;
+  line-height: 1.4;
+}
+
+#sr-no-content-toast.sr-visible {
+  opacity: 1;
+}
+
+/* ─── Reading Complete Card ──────────────────────────────────────────────── */
+#sr-completion-card {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 300px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.18),
+    0 1px 4px rgba(0, 0, 0, 0.10);
+  z-index: 2147483647;
+  font-family: system-ui, -apple-system, sans-serif;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 280ms ease, transform 280ms ease;
+  pointer-events: auto;
+}
+
+#sr-completion-card.sr-card-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.sr-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.sr-card-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.sr-card-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1565C0;
+  letter-spacing: 0.01em;
+}
+
+.sr-card-close {
+  background: none;
+  border: none;
+  color: #999;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 150ms, color 150ms;
+}
+.sr-card-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.sr-card-stats {
+  display: flex;
+  justify-content: space-around;
+  padding: 14px 10px 10px;
+  gap: 4px;
+}
+
+.sr-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+}
+
+.sr-stat-value {
+  font-size: 20px;
+  font-weight: 800;
+  color: #1a1a1a;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.sr-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #888;
+  font-weight: 500;
+}
+
+.sr-card-comparison {
+  padding: 8px 14px 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.sr-comparison-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.sr-comparison-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  width: 26px;
+  flex-shrink: 0;
+}
+
+.sr-comparison-bar {
+  height: 8px;
+  border-radius: 4px;
+  min-width: 4px;
+  transition: width 600ms ease-out;
+}
+
+.sr-bar-you  { background: linear-gradient(90deg, #1565C0, #42A5F5); }
+.sr-bar-avg  { background: #ddd; }
+
+.sr-comparison-wpm {
+  font-size: 11px;
+  color: #999;
+  white-space: nowrap;
+  margin-left: 2px;
+}
+
+.sr-card-footer-text {
+  font-size: 11px;
+  color: #666;
+  margin-top: 8px;
+  text-align: center;
+  line-height: 1.4;
+}

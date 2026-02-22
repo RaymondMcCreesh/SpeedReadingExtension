@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!-- Fixture 1.2: Wikipedia-style article with TOC, infobox, references, navbox -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Wikipedia Fixture</title>
+<style>
+  body { font-family: 'Linux Libertine', Georgia, serif; font-size:16px; max-width:960px; margin:0 auto; padding:20px; }
+  #mw-content-text { flex:1; }
+  #mw-content-text p { line-height:1.6; margin-bottom:12px; }
+  .toc { background:#f8f8f8; border:1px solid #aaa; padding:12px 16px; display:inline-block; margin-bottom:16px; font-size:13px; }
+  .toc li { margin:3px 0; }
+  .infobox { float:right; clear:right; margin:0 0 16px 24px; background:#f8f9fa; border:1px solid #a2a9b1; padding:8px; font-size:13px; width:22em; }
+  .infobox caption { font-weight:bold; font-size:14px; margin-bottom:6px; }
+  .infobox td, .infobox th { padding:3px 6px; }
+  .reflist { font-size:13px; column-count:2; column-gap:20px; border-top:2px solid #aaa; padding-top:10px; margin-top:16px; }
+  .reflist li { margin-bottom:4px; }
+  .navbox { background:#f8f8f8; border:1px solid #aaa; padding:8px; font-size:12px; margin-top:24px; }
+  .navbox-title { background:#ccc; padding:4px 8px; font-weight:bold; }
+  #mw-page-base, #mw-head { background:#eee; padding:8px; font-size:12px; margin-bottom:12px; }
+  sup.reference { font-size:11px; }
+  .layout { display:flex; gap:20px; }
+  #mw-panel { width:180px; flex-shrink:0; font-size:13px; }
+  #mw-panel ul { list-style:none; padding:0; }
+  #mw-panel li { padding:3px 0; }
+  #mw-panel a { text-decoration:none; color:#0645ad; }
+</style>
+</head>
+<body>
+
+<!-- Wikipedia left nav (should be excluded) -->
+<div id="mw-head" role="navigation">Wikipedia navigation | Search | Log in</div>
+
+<div class="layout">
+
+  <div id="mw-panel" role="navigation">
+    <ul>
+      <li><a href="#">Main page</a></li>
+      <li><a href="#">Contents</a></li>
+      <li><a href="#">Current events</a></li>
+      <li><a href="#">Random article</a></li>
+      <li><a href="#">Help</a></li>
+    </ul>
+  </div>
+
+  <div id="mw-content-text" data-expected-block="true">
+
+    <h1>Deep-sea fish</h1>
+
+    <!-- Infobox (should be excluded by TABLE tag rule) -->
+    <table class="infobox">
+      <caption>Deep-sea fish</caption>
+      <tbody>
+        <tr><th>Kingdom</th><td>Animalia</td></tr>
+        <tr><th>Phylum</th><td>Chordata</td></tr>
+        <tr><th>Class</th><td>Actinopterygii</td></tr>
+        <tr><th>Habitat depth</th><td>200–11,000 m</td></tr>
+        <tr><th>Estimated species</th><td>2,000+</td></tr>
+      </tbody>
+    </table>
+
+    <!-- TOC (should be excluded by link-density penalty) -->
+    <div id="toc" class="toc">
+      <strong>Contents</strong>
+      <ol>
+        <li><a href="#Definition">1 Definition</a></li>
+        <li><a href="#Adaptations">2 Adaptations</a></li>
+        <li><a href="#Bioluminescence">3 Bioluminescence</a></li>
+        <li><a href="#Notable_species">4 Notable species</a></li>
+        <li><a href="#References">5 References</a></li>
+      </ol>
+    </div>
+
+    <!-- Article body (should be extracted) -->
+    <p>Deep-sea fish are fish that live in the darkness below the sunlit surface waters, that is below the epipelagic or photic zone of the sea. The lanternfish is by far the most commonly found deep-sea fish and is believed to be the most common vertebrate on earth.<sup class="reference">[1]</sup></p>
+
+    <p>The deep sea is defined as the region below the mesopelagic zone, or roughly 1,000 meters and below. At these depths, pressure reaches hundreds of atmospheres, sunlight is absent, and food is perpetually scarce. Despite these challenges, a remarkable diversity of life has evolved to exploit this extreme environment.<sup class="reference">[2]</sup></p>
+
+    <h2 id="Adaptations">Adaptations</h2>
+
+    <p>Fish in the deep sea have evolved numerous adaptations to cope with their environment. Many possess greatly enlarged eyes to capture what little light exists. Others have lost their eyes entirely, relying instead on lateral line sensing and chemoreception to detect prey and predators. Bioluminescence is perhaps the most striking adaptation, with an estimated 76% of deep-sea fish capable of producing their own light.<sup class="reference">[3]</sup></p>
+
+    <p>Pressure adaptation involves modifications to cell membranes and enzyme structures to function correctly at high pressure. The bodies of many deep-sea fish contain water-filled chambers that compress rather than collapse, avoiding the barotrauma that would kill shallow-water species transported to these depths.</p>
+
+    <h2 id="Bioluminescence">Bioluminescence</h2>
+
+    <p>Bioluminescent organs called photophores are distributed across the bodies of many deep-sea species. These organs serve multiple functions: attracting prey (as in the anglerfish's lure), communicating with potential mates, and counterillumination — producing downwelling light to match ambient light from above, making the fish invisible to predators looking upward.</p>
+
+    <p>The biochemistry of bioluminescence typically involves the oxidation of a luciferin compound catalyzed by the enzyme luciferase. However, deep-sea fish have independently evolved this chemistry multiple times, resulting in a variety of luciferin types and luciferase structures across different lineages.</p>
+
+    <!-- References (should be excluded by reflist class / small font) -->
+    <h2 id="References">References</h2>
+    <ol class="reflist">
+      <li>Smith, J. (2019). <em>The Lanternfish and the Deep Sea</em>. Marine Science Press.</li>
+      <li>Jones, A. et al. (2021). "Pressure adaptation in mesopelagic fish." <em>Journal of Marine Biology</em> 42(3): 112–130.</li>
+      <li>Chen, M. (2024). "Bioluminescence prevalence in bathypelagic fish." <em>Nature Marine Science</em> 7: 44.</li>
+    </ol>
+
+    <!-- Navbox (should be excluded) -->
+    <div class="navbox">
+      <div class="navbox-title">Marine biology topics</div>
+      <a href="#">Coral reefs</a> · <a href="#">Ocean currents</a> · <a href="#">Plankton</a> · <a href="#">Cetaceans</a> · <a href="#">Fisheries</a> · <a href="#">Ocean acidification</a> · <a href="#">Deep-sea vents</a>
+    </div>
+
+  </div><!-- #mw-content-text -->
+
+</div><!-- .layout -->
+
+</body>
+</html>

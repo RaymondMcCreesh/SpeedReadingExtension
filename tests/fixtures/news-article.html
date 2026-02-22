@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<!-- Fixture 1.1: CNN/BBC-style news article with sidebar, nav, ads, footer -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>News Article Fixture</title>
+<style>
+  body { margin: 0; font-family: Georgia, serif; }
+  nav { background:#c00; color:#fff; padding:10px 20px; font-size:13px; position:sticky; top:0; }
+  nav a { color:#fff; margin-right:12px; text-decoration:none; }
+  .layout { display:flex; max-width:1200px; margin:0 auto; gap:24px; padding:20px; }
+  .sidebar-left { width:220px; flex-shrink:0; }
+  .sidebar-left .ad-unit { background:#eee; border:1px solid #ccc; padding:10px; font-size:12px; color:#888; height:250px; display:flex; align-items:center; justify-content:center; }
+  .article__content { flex:1; min-width:0; }
+  .article__content h1 { font-size:28px; margin-bottom:10px; }
+  .article__content p { line-height:1.7; margin-bottom:14px; font-size:16px; }
+  .sidebar-right { width:200px; flex-shrink:0; font-size:13px; }
+  .sidebar-right .related-item { border-bottom:1px solid #eee; padding:8px 0; }
+  footer { background:#222; color:#aaa; padding:20px; font-size:12px; text-align:center; margin-top:40px; }
+  .breadcrumb { font-size:12px; color:#888; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<!-- NAV (should be excluded) -->
+<nav>
+  <a href="#">Home</a>
+  <a href="#">World</a>
+  <a href="#">Politics</a>
+  <a href="#">Business</a>
+  <a href="#">Tech</a>
+  <a href="#">Health</a>
+</nav>
+
+<div class="layout">
+
+  <!-- LEFT SIDEBAR (should be excluded) -->
+  <aside class="sidebar-left">
+    <div class="ad-unit">Advertisement 300×250</div>
+    <ul style="list-style:none;padding:0;margin-top:16px;font-size:13px;">
+      <li><a href="#">Sponsored: Buy shoes now</a></li>
+      <li><a href="#">Promoted: Insurance quotes</a></li>
+    </ul>
+  </aside>
+
+  <!-- MAIN ARTICLE (should be extracted) -->
+  <main class="article__content" id="article-body" data-expected-block="true">
+    <div class="breadcrumb">Home › World › Europe</div>
+    <h1>Scientists Discover New Species of Deep-Sea Fish</h1>
+    <p style="color:#888;font-size:13px;">By Jane Smith · February 22, 2026</p>
+
+    <p>Researchers from the National Oceanic Institute announced today the discovery of a previously unknown species of fish living at depths exceeding 4,000 meters in the Pacific Ocean. The creature, tentatively named <em>Bathyphilus oceanus</em>, was found during a routine deep-sea survey mission.</p>
+
+    <p>The discovery has excited marine biologists worldwide, as it adds to the growing catalog of species that thrive in extreme conditions far beyond the reach of sunlight. Dr. Maria Chen, lead researcher on the project, described the fish as "an extraordinary example of evolutionary adaptation."</p>
+
+    <p>"What makes this species truly remarkable is its bioluminescent organ structure," Dr. Chen explained at a press conference. "We have never seen this particular arrangement of photophores before. It suggests a completely independent evolutionary pathway from other known deep-sea luminescent species."</p>
+
+    <p>The fish measures approximately 30 centimeters in length and possesses a distinctive pattern of blue and green light-producing cells along its lateral line. High-definition video footage captured by the research vessel's remotely operated vehicle showed several specimens congregating near hydrothermal vents.</p>
+
+    <p>The team spent six weeks analyzing the footage before concluding that they were looking at an entirely new genus. Genetic samples obtained via a specially designed collection device confirmed the finding. The full paper will be published in the journal <em>Marine Biology Letters</em> next month.</p>
+
+    <p>Conservation groups have already called for protective status for the newly identified species and its habitat. The hydrothermal vent ecosystem where the fish was discovered is currently under threat from proposed deep-sea mining operations in the region.</p>
+
+    <p>"We have a responsibility to understand what we are dealing with before we allow any industrial activity that could destroy it," said environmental lawyer James Okafor, who represents several conservation organizations monitoring the area.</p>
+
+    <p>The National Oceanic Institute plans a follow-up expedition later this year to collect additional specimens for laboratory study. Funding for the research came from a combination of government grants and a private foundation focused on ocean conservation.</p>
+  </main>
+
+  <!-- RIGHT SIDEBAR (should be excluded) -->
+  <aside class="sidebar-right">
+    <strong>Related Stories</strong>
+    <div class="related-item"><a href="#">Ocean Temperatures Hit Record High</a></div>
+    <div class="related-item"><a href="#">New Deep-Sea Coral Reef Mapped</a></div>
+    <div class="related-item"><a href="#">Marine Biologist Profile: Dr. Chen</a></div>
+    <div class="related-item"><a href="#">Hydrothermal Vents Explained</a></div>
+    <div class="ad-unit" style="background:#eee;border:1px solid #ccc;padding:8px;font-size:11px;color:#888;height:200px;display:flex;align-items:center;justify-content:center;margin-top:12px;">Ad 200×200</div>
+  </aside>
+
+</div>
+
+<!-- FOOTER (should be excluded) -->
+<footer>
+  <p>&copy; 2026 News Corp. All rights reserved. | Privacy Policy | Terms of Service | Contact Us</p>
+  <p>Our network: NewsTV | SportsNet | WeatherChannel | FinanceHub</p>
+</footer>
+
+</body>
+</html>

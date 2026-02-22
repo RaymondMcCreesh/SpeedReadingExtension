@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "Speed Reader",
+  "version": "1.0.0",
+  "description": "In-place speed reading with eye movement training — highlight moves across the page",
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": [
+        "utils/storage.js",
+        "utils/complexity.js",
+        "content/text-extractor.js",
+        "content/highlighter.js",
+        "content/scroll-manager.js",
+        "content/eye-movement.js",
+        "content/content.js"
+      ],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "commands": {
+    "toggle-reading": {
+      "suggested_key": {
+        "default": "Alt+R",
+        "mac": "Alt+R"
+      },
+      "description": "Start / pause / resume speed reading"
+    },
+    "stop-reading": {
+      "suggested_key": {
+        "default": "Alt+S",
+        "mac": "Alt+S"
+      },
+      "description": "Stop speed reading and save position"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!-- Fixture 1.7: Shadow DOM content (open + closed variants) -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Shadow DOM Fixture</title>
+<style>
+  body { font-family: Georgia, serif; font-size:16px; padding:20px; }
+  h1 { font-size:24px; margin-bottom:16px; }
+</style>
+</head>
+<body>
+  <h1>Shadow DOM Test Page</h1>
+  <p>This text is in the light DOM and should be readable.</p>
+
+  <!-- Custom element with OPEN shadow root (should be pierceable) -->
+  <custom-reader id="open-reader"></custom-reader>
+
+  <!-- Custom element with CLOSED shadow root (should fail gracefully) -->
+  <custom-reader-closed id="closed-reader"></custom-reader-closed>
+
+  <p>More light DOM text after the custom elements.</p>
+
+  <script>
+    // Open shadow root — content accessible via el.shadowRoot
+    class CustomReader extends HTMLElement {
+      constructor() {
+        super();
+        const shadow = this.attachShadow({ mode: 'open' });
+        shadow.innerHTML = `
+          <style>p { font-family: Georgia, serif; font-size: 16px; line-height: 1.7; margin-bottom: 14px; }</style>
+          <article>
+            <p>This is content inside an open Shadow DOM. The speed reader extension should be able
+               to detect this and either read it or gracefully report that the content is inside
+               a shadow root.</p>
+            <p>Shadow DOM is used by many modern web applications and web components to encapsulate
+               their internal structure. Open shadow roots expose their internals via element.shadowRoot,
+               while closed shadow roots are completely inaccessible from outside the component.</p>
+          </article>
+        `;
+      }
+    }
+    customElements.define('custom-reader', CustomReader);
+
+    // Closed shadow root — inaccessible
+    class CustomReaderClosed extends HTMLElement {
+      constructor() {
+        super();
+        const shadow = this.attachShadow({ mode: 'closed' });
+        shadow.innerHTML = `
+          <p>This content is inside a CLOSED shadow root and cannot be accessed by extension scripts.</p>
+        `;
+      }
+    }
+    customElements.define('custom-reader-closed', CustomReaderClosed);
+  </script>
+</body>
+</html>

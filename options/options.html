@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Reader — Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header>
+    <h1>⚡ Speed Reader Settings</h1>
+  </header>
+
+  <main>
+    <!-- ── Speed ─────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Speed</h2>
+
+      <div class="field">
+        <label for="wpm">Words per minute (WPM)
+          <span class="value-badge" id="wpm-badge">300</span>
+        </label>
+        <input type="range" id="wpm" name="wpm" min="100" max="1500" step="10">
+        <div class="hint">100 = very slow / 300 = average / 600 = advanced / 1000+ = speed reader</div>
+      </div>
+
+      <div class="field">
+        <label for="chunkSize">Words per chunk (chunk size)
+          <span class="value-badge" id="chunkSize-badge">3</span>
+        </label>
+        <input type="range" id="chunkSize" name="chunkSize" min="1" max="7" step="1">
+        <div class="hint">How many words are highlighted at once. More = wider peripheral training.</div>
+      </div>
+
+      <div class="field">
+        <label for="chunkOverlap">Chunk overlap
+          <span class="value-badge" id="chunkOverlap-badge">1</span> word(s)
+        </label>
+        <input type="range" id="chunkOverlap" name="chunkOverlap" min="0" max="2" step="1">
+        <div class="hint">Re-show N words from previous chunk. Aids comprehension at high speed.</div>
+      </div>
+
+      <div class="field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="complexityAdapt" name="complexityAdapt">
+          Adaptive chunk size (auto-narrows for complex words)
+        </label>
+      </div>
+    </section>
+
+    <!-- ── Eye Movement Training ──────────────────────────────────────────── -->
+    <section>
+      <h2>Eye Movement Training</h2>
+
+      <div class="field">
+        <label for="lineEndPause">Line-end pause
+          <span class="value-badge" id="lineEndPause-badge">400</span> ms
+        </label>
+        <input type="range" id="lineEndPause" name="lineEndPause" min="0" max="1000" step="25">
+        <div class="hint">Pause at the end of each line before the return sweep. Mimics natural reading rhythm.</div>
+      </div>
+
+      <div class="field">
+        <label for="returnSweepSpeed">Return sweep speed
+          <span class="value-badge" id="returnSweepSpeed-badge">150</span> ms
+        </label>
+        <input type="range" id="returnSweepSpeed" name="returnSweepSpeed" min="50" max="500" step="25">
+        <div class="hint">Duration of the eye's jump back to the start of the next line.</div>
+      </div>
+    </section>
+
+    <!-- ── Scroll Behaviour ───────────────────────────────────────────────── -->
+    <section>
+      <h2>Scroll Behaviour</h2>
+
+      <div class="field">
+        <label for="scrollMode">Scroll mode</label>
+        <select id="scrollMode" name="scrollMode">
+          <option value="mixed">Mixed — eye jumps for N lines, then page scrolls (recommended)</option>
+          <option value="page-turn">Page turn — eye traverses the full visible page, then hard-scrolls to next page</option>
+          <option value="eye-only">Eye only — page never auto-scrolls</option>
+          <option value="auto-scroll">Auto-scroll — page scrolls after every line</option>
+        </select>
+        <div class="hint">Mixed and Page turn both train the eye. Page turn mimics reading a physical page: read to the bottom, then the page flips.</div>
+      </div>
+
+      <div class="field" id="eyeJumpLines-row">
+        <label for="eyeJumpLines">Eye-jump lines before scroll
+          <span class="value-badge" id="eyeJumpLines-badge">3</span>
+        </label>
+        <input type="range" id="eyeJumpLines" name="eyeJumpLines" min="1" max="10" step="1">
+        <div class="hint">How many lines to traverse by eye movement before the page auto-scrolls.</div>
+      </div>
+    </section>
+
+    <!-- ── Visual ─────────────────────────────────────────────────────────── -->
+    <section>
+      <h2>Visual</h2>
+
+      <div class="field field-row">
+        <label for="highlightColor">Highlight colour (light pages)</label>
+        <input type="color" id="highlightColor" name="highlightColor" value="#FFEB3B">
+      </div>
+
+      <div class="field field-row">
+        <label for="darkHighlightColor">Highlight colour (dark pages)</label>
+        <input type="color" id="darkHighlightColor" name="darkHighlightColor" value="#6495ED">
+      </div>
+
+      <div class="field">
+        <label for="highlightOpacity">Highlight opacity
+          <span class="value-badge" id="highlightOpacity-badge">0.6</span>
+        </label>
+        <input type="range" id="highlightOpacity" name="highlightOpacity" min="0.1" max="1.0" step="0.05">
+      </div>
+
+      <div class="field">
+        <label class="checkbox-label">
+          <input type="checkbox" id="progressIndicator" name="progressIndicator">
+          Show progress bar at bottom of page
+        </label>
+      </div>
+    </section>
+
+    <!-- ── Save / Reset ───────────────────────────────────────────────────── -->
+    <div class="actions">
+      <button id="btn-save" class="btn btn-primary">Save settings</button>
+      <button id="btn-reset" class="btn btn-danger">Reset to defaults</button>
+    </div>
+
+    <div id="save-msg" class="save-msg" aria-live="polite"></div>
+  </main>
+
+  <script src="options.js"></script>
+</body>
+</html>

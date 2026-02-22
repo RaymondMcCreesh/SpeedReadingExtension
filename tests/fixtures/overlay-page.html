@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<!-- Fixture 1.8: Page with high z-index cookie consent modal covering viewport -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Overlay Page Fixture</title>
+<style>
+  body { font-family: Georgia, serif; font-size:16px; padding:20px; margin:0; }
+
+  /* Cookie consent overlay — fixed, high z-index (should be scored low by extractor) */
+  #cookie-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #cookie-modal .dialog {
+    background: #fff;
+    padding: 32px;
+    border-radius: 10px;
+    max-width: 420px;
+    text-align: center;
+  }
+  #cookie-modal button {
+    background: #1565C0;
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 12px;
+  }
+
+  /* The actual article (under the overlay) */
+  .article__content { max-width: 680px; margin: 0 auto; }
+  .article__content p { line-height: 1.7; margin-bottom: 14px; }
+  nav { background: #333; color: #fff; padding: 10px 20px; margin: -20px -20px 20px; font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- Cookie modal (position:fixed, z-index:9999 — should be penalized by extractor) -->
+<div id="cookie-modal" role="dialog" aria-label="Cookie consent">
+  <div class="dialog">
+    <h2 style="font-size:18px;margin-bottom:8px;">We use cookies</h2>
+    <p style="font-size:14px;color:#555;">This website uses cookies to improve your experience. Please accept to continue reading.</p>
+    <button onclick="document.getElementById('cookie-modal').remove()">Accept All</button>
+    <button onclick="document.getElementById('cookie-modal').remove()" style="background:#888;margin-left:8px;">Decline</button>
+  </div>
+</div>
+
+<nav>My News Site | Home | World | Politics | Tech</nav>
+
+<!-- Article content (under the overlay — should be correctly identified) -->
+<main class="article__content" data-expected-block="true">
+  <h1>Breakthrough in Quantum Computing Announced</h1>
+  <p style="color:#888;font-size:13px;">By Tech Reporter · Feb 22, 2026</p>
+
+  <p>A team of researchers at a leading technology university has announced a significant breakthrough in quantum computing, achieving stable qubit coherence times of more than one second at room temperature — a milestone that experts say could dramatically accelerate the practical deployment of quantum computers.</p>
+
+  <p>Current quantum computers require cooling to temperatures near absolute zero to maintain qubit stability, making them enormously expensive to operate and difficult to scale. The new approach, which uses a novel class of synthetic diamond with precisely engineered nitrogen-vacancy centers, eliminates this constraint entirely.</p>
+
+  <p>"This is the result of twelve years of work," said Professor Elena Vasquez, the project's principal investigator. "We always believed room-temperature quantum coherence was theoretically possible, but actually achieving it with sufficient fidelity to run quantum algorithms required solving problems we didn't even know existed when we started."</p>
+
+  <p>The team demonstrated their system running Grover's search algorithm — a canonical quantum algorithm — with error rates comparable to state-of-the-art cryogenic systems. Independent verification of the results was conducted by two other research groups, both of which confirmed the findings.</p>
+
+  <p>Industry analysts believe the development, if it can be replicated and scaled, could make quantum computers accessible to organizations that currently cannot justify the cost of cryogenic infrastructure. Several technology companies have already expressed interest in licensing the underlying technology.</p>
+
+  <p>The research was funded by a combination of government science grants and a private foundation. Full technical details will be published in the journal <em>Physical Review Letters</em> following peer review.</p>
+</main>
+
+</body>
+</html>

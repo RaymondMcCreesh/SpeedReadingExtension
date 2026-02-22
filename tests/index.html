@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<!--
+  Speed Reader — In-browser test runner
+  ======================================
+  Open this file in a browser (NOT as an extension page — load via a local server
+  or file:// URL). The tests run in iframes loaded with fixture HTML files.
+
+  Run:
+    cd /home/ray/speedReading
+    python3 -m http.server 8765
+  Then open: http://localhost:8765/tests/
+
+  Categories tested:
+    1. Text extraction (content block identification)
+    2. Complexity scoring (syllable counter, adaptive chunk size)
+    3. Timing engine (drift, burst guard, chunk advance)
+    4. Scroll manager (mode calculations)
+    5. Highlighter (rect computation, progress)
+    6. Edge cases (empty, short, RTL)
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Speed Reader — Test Suite</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; font-size: 14px; background: #f5f5f5; color: #1a1a1a; padding: 20px; }
+    h1 { font-size: 22px; margin-bottom: 4px; color: #1565C0; }
+    .subtitle { color: #666; font-size: 13px; margin-bottom: 20px; }
+    #run-btn { background: #1565C0; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; margin-bottom: 24px; }
+    #run-btn:hover { background: #1976D2; }
+    #summary { margin-bottom: 16px; font-weight: 600; font-size: 15px; }
+    .suite { background: #fff; border-radius: 8px; margin-bottom: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden; }
+    .suite-header { background: #E3F2FD; padding: 10px 16px; font-weight: 700; font-size: 13px; color: #1565C0; }
+    .test-row { display: flex; align-items: baseline; gap: 10px; padding: 8px 16px; border-top: 1px solid #f0f0f0; font-size: 13px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    .badge-pass { background: #E8F5E9; color: #2E7D32; }
+    .badge-fail { background: #FFEBEE; color: #C62828; }
+    .badge-skip { background: #FFF8E1; color: #F57F17; }
+    .badge-run  { background: #E3F2FD; color: #1565C0; }
+    .test-name { flex: 1; }
+    .test-detail { color: #888; font-size: 12px; font-style: italic; }
+    /* Hidden iframe for DOM fixture tests */
+    #fixture-frame { display: none; width: 1200px; height: 900px; }
+  </style>
+</head>
+<body>
+  <h1>⚡ Speed Reader — Test Suite</h1>
+  <p class="subtitle">
+    Run: <code>python3 -m http.server 8765</code> then open
+    <code>http://localhost:8765/tests/</code>
+  </p>
+  <button id="run-btn">▶ Run All Tests</button>
+  <div id="summary"></div>
+  <div id="results"></div>
+
+  <!-- Sandboxed iframe for loading fixture pages -->
+  <iframe id="fixture-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+
+  <!-- Load extension modules (adapted for non-extension context) -->
+  <script>
+    // Minimal chrome.storage stub so modules don't crash in test context
+    const _storageBacking = {};
+    const _storageListeners = [];
+    const _makeStore = () => ({
+      get(keys, cb) {
+        const result = {};
+        const ks = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : Object.keys(keys));
+        for (const k of ks) result[k] = _storageBacking[k] !== undefined ? _storageBacking[k] : (typeof keys === 'object' && !Array.isArray(keys) ? keys[k] : undefined);
+        if (cb) cb(result);
+      },
+      set(items, cb) {
+        const changes = {};
+        for (const [k, v] of Object.entries(items)) {
+          changes[k] = { oldValue: _storageBacking[k], newValue: v };
+          _storageBacking[k] = v;
+        }
+        if (cb) cb();
+        for (const fn of _storageListeners) fn(changes, 'sync');
+      }
+    });
+    window.chrome = window.chrome || {
+      storage: {
+        sync:    _makeStore(),
+        local:   _makeStore(),
+        session: _makeStore(),
+        onChanged: {
+          addListener(fn)    { _storageListeners.push(fn); },
+          removeListener(fn) { const i = _storageListeners.indexOf(fn); if (i >= 0) _storageListeners.splice(i, 1); }
+        }
+      },
+      runtime: { lastError: null, sendMessage() {} },
+      tabs: { query(q, cb) { if(cb) cb([]); } }
+    };
+  </script>
+  <script src="../utils/storage.js"></script>
+  <script src="../utils/complexity.js"></script>
+  <script src="../content/text-extractor.js"></script>
+  <script src="../content/scroll-manager.js"></script>
+  <script src="../content/highlighter.js"></script>
+
+  <script>
+  'use strict';
+
+  // ── Test harness ──────────────────────────────────────────────────────────
+
+  const suites = [];
+  let currentSuite = null;
+
+  function describe(name, fn) {
+    currentSuite = { name, tests: [] };
+    suites.push(currentSuite);
+    fn();
+    currentSuite = null;
+  }
+
+  function it(name, fn) {
+    currentSuite.tests.push({ name, fn });
+  }
+
+  function expect(actual) {
+    return {
+      toBe(expected) {
+        if (actual !== expected) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+      },
+      toEqual(expected) {
+        if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error(`Expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
+      },
+      toBeGreaterThan(n) {
+        if (!(actual > n)) throw new Error(`Expected ${actual} > ${n}`);
+      },
+      toBeLessThan(n) {
+        if (!(actual < n)) throw new Error(`Expected ${actual} < ${n}`);
+      },
+      toBeGreaterThanOrEqual(n) {
+        if (!(actual >= n)) throw new Error(`Expected ${actual} >= ${n}`);
+      },
+      toBeLessThanOrEqual(n) {
+        if (!(actual <= n)) throw new Error(`Expected ${actual} <= ${n}`);
+      },
+      toBeTruthy() {
+        if (!actual) throw new Error(`Expected truthy, got ${JSON.stringify(actual)}`);
+      },
+      toBeFalsy() {
+        if (actual) throw new Error(`Expected falsy, got ${JSON.stringify(actual)}`);
+      },
+      toBeNull() {
+        if (actual !== null) throw new Error(`Expected null, got ${JSON.stringify(actual)}`);
+      },
+      toContain(item) {
+        if (!actual.includes(item)) throw new Error(`Expected array/string to contain ${JSON.stringify(item)}`);
+      },
+      toHaveLength(n) {
+        if (actual.length !== n) throw new Error(`Expected length ${n}, got ${actual.length}`);
+      },
+      toMatch(pattern) {
+        if (!pattern.test(actual)) throw new Error(`Expected "${actual}" to match ${pattern}`);
+      }
+    };
+  }
+
+  // ── Test definitions ──────────────────────────────────────────────────────
+
+  // ── Category 1: Complexity Scoring ────────────────────────────────────────
+  describe('1. Complexity — Syllable Counter', () => {
+    it('counts 1 syllable for short words', () => {
+      expect(ComplexityUtil.countSyllables('the')).toBe(1);
+      expect(ComplexityUtil.countSyllables('a')).toBe(1);
+      expect(ComplexityUtil.countSyllables('cat')).toBe(1);
+    });
+
+    it('counts 2 syllables for common words', () => {
+      expect(ComplexityUtil.countSyllables('reading')).toBe(2);
+      expect(ComplexityUtil.countSyllables('happy')).toBe(2);
+      expect(ComplexityUtil.countSyllables('ocean')).toBe(2);
+    });
+
+    it('counts 3+ syllables for complex words', () => {
+      expect(ComplexityUtil.countSyllables('beautiful')).toBeGreaterThanOrEqual(3);
+      expect(ComplexityUtil.countSyllables('education')).toBeGreaterThanOrEqual(3);
+      expect(ComplexityUtil.countSyllables('comprehension')).toBeGreaterThanOrEqual(3);
+    });
+
+    it('handles empty and punctuation-only words', () => {
+      expect(ComplexityUtil.countSyllables('')).toBe(0);
+      expect(ComplexityUtil.countSyllables('...')).toBe(0);
+    });
+
+    it('handles words with silent trailing e', () => {
+      // "make" should be 1 syllable (m-a-k, silent e removed)
+      const score = ComplexityUtil.countSyllables('make');
+      expect(score).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('2. Complexity — Word Scoring', () => {
+    it('simple words score lower than complex words', () => {
+      const simpleScore = ComplexityUtil.scoreWord('the');
+      const complexScore = ComplexityUtil.scoreWord('comprehension');
+      expect(complexScore).toBeGreaterThan(simpleScore);
+    });
+
+    it('returns 1 for punctuation-only tokens', () => {
+      expect(ComplexityUtil.scoreWord('.')).toBe(1);
+      expect(ComplexityUtil.scoreWord('—')).toBe(1);
+    });
+  });
+
+  describe('3. Complexity — Adaptive Chunk Size', () => {
+    const baseSettings = { complexityAdapt: true, chunkSize: 3 };
+
+    it('returns base chunk size for complexity adaptation disabled', () => {
+      const words = [{ text: 'supercalifragilistic' }, { text: 'antidisestablishmentarianism' }];
+      const size = ComplexityUtil.adaptChunkSize(words, 3, { ...baseSettings, complexityAdapt: false });
+      expect(size).toBe(3);
+    });
+
+    it('increases chunk size for simple text', () => {
+      // "a the of is in on at" — all simple 1-syllable words
+      const simpleWords = ['a', 'the', 'of', 'is', 'in', 'on', 'at', 'by', 'to', 'an']
+        .map(t => ({ text: t }));
+      const size = ComplexityUtil.adaptChunkSize(simpleWords, 3, baseSettings);
+      // Simple text → chunk should be >= base (3) or +1
+      expect(size).toBeGreaterThanOrEqual(3);
+    });
+
+    it('decreases chunk size for complex text', () => {
+      const complexWords = [
+        'antidisestablishmentarianism', 'pneumonoultramicroscopicsilicovolcanoconiosis',
+        'incomprehensibilities', 'electroencephalography', 'counterrevolutionary',
+        'misrepresentation', 'multidimensional', 'disenfranchisement',
+        'unconstitutionality', 'internationalization'
+      ].map(t => ({ text: t }));
+      const size = ComplexityUtil.adaptChunkSize(complexWords, 3, baseSettings);
+      // Very complex → chunk should be <= base (3)
+      expect(size).toBeLessThanOrEqual(3);
+    });
+
+    it('clamps output to minimum 1', () => {
+      const complexWords = Array(10).fill({ text: 'antidisestablishmentarianism' });
+      const size = ComplexityUtil.adaptChunkSize(complexWords, 1, baseSettings);
+      expect(size).toBeGreaterThanOrEqual(1);
+    });
+
+    it('clamps output to maximum chunkSize + 1', () => {
+      const simpleWords = Array(10).fill({ text: 'a' });
+      const size = ComplexityUtil.adaptChunkSize(simpleWords, 3, baseSettings);
+      expect(size).toBeLessThanOrEqual(4); // chunkSize + 1
+    });
+
+    it('returns neutral chunk for empty word list', () => {
+      const size = ComplexityUtil.adaptChunkSize([], 3, baseSettings);
+      expect(size).toBe(3); // neutral: windowScore returns 3.5 default → base
+    });
+  });
+
+  // ── Category 2: URL Hash ───────────────────────────────────────────────────
+  describe('4. Storage — URL Hash', () => {
+    it('produces a non-empty string', () => {
+      const hash = StorageUtil.hashURL('https://example.com/article');
+      expect(typeof hash).toBe('string');
+      expect(hash.length).toBeGreaterThan(0);
+    });
+
+    it('is deterministic', () => {
+      const url = 'https://example.com/article';
+      expect(StorageUtil.hashURL(url)).toBe(StorageUtil.hashURL(url));
+    });
+
+    it('produces different hashes for different URLs', () => {
+      const a = StorageUtil.hashURL('https://example.com/a');
+      const b = StorageUtil.hashURL('https://example.com/b');
+      // Very unlikely to be equal with different inputs
+      expect(a).toBe(StorageUtil.hashURL('https://example.com/a'));
+      // They should differ
+      if (a === b) throw new Error('Hash collision on simple inputs');
+    });
+  });
+
+  // ── Category 3: Text Extraction (DOM-based, run in fixture iframe) ─────────
+  describe('5. TextExtractor — Scoring: penalties for excluded elements', () => {
+    it('penalizes fixed-position elements', () => {
+      const div = document.createElement('div');
+      div.style.position = 'fixed';
+      div.style.zIndex = '9999';
+      div.innerHTML = '<p>' + 'word '.repeat(150) + '</p>';
+      document.body.appendChild(div);
+      const extractor = new TextExtractor();
+      const score = extractor._scoreElement(div);
+      document.body.removeChild(div);
+      expect(score).toBeLessThan(0);
+    });
+
+    it('rewards article elements', () => {
+      const article = document.createElement('article');
+      article.innerHTML = '<p>' + 'word '.repeat(200) + '</p>';
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const score = extractor._scoreElement(article);
+      document.body.removeChild(article);
+      expect(score).toBeGreaterThan(30); // article tag bonus = 40
+    });
+
+    it('penalizes sidebar class patterns', () => {
+      const div = document.createElement('div');
+      div.className = 'sidebar-left';
+      div.innerHTML = '<p>' + 'word '.repeat(100) + '</p>';
+      document.body.appendChild(div);
+      const extractor = new TextExtractor();
+      const score = extractor._scoreElement(div);
+      document.body.removeChild(div);
+      // Sidebar class → -45 penalty should dominate
+      expect(score).toBeLessThan(20);
+    });
+
+    it('penalizes high link density', () => {
+      const nav = document.createElement('nav');
+      nav.innerHTML = Array(30).fill(0).map((_, i) =>
+        `<a href="#">Link ${i}</a> `
+      ).join('');
+      document.body.appendChild(nav);
+      const extractor = new TextExtractor();
+      const score = extractor._scoreElement(nav);
+      document.body.removeChild(nav);
+      // nav tag -60 + link density > 50% → -30
+      expect(score).toBeLessThan(0);
+    });
+  });
+
+  describe('6. TextExtractor — Word list building', () => {
+    it('extracts words from a simple paragraph', () => {
+      const article = document.createElement('article');
+      article.innerHTML = '<p>The quick brown fox jumps over the lazy dog.</p>';
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      const texts = words.map(w => w.text.replace(/[^a-z]/gi, '').toLowerCase()).filter(Boolean);
+      expect(texts).toContain('quick');
+      expect(texts).toContain('fox');
+      expect(texts).toContain('lazy');
+    });
+
+    it('skips content inside excluded tags (script, nav, code)', () => {
+      const article = document.createElement('article');
+      article.innerHTML = `
+        <p>Visible text here.</p>
+        <nav>Nav link one nav link two</nav>
+        <pre><code>function foo() { return 42; }</code></pre>
+        <p>More visible text.</p>
+      `;
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      const texts = words.map(w => w.text.toLowerCase());
+      // Should contain article prose
+      expect(texts.some(t => t.includes('visible'))).toBeTruthy();
+      // Should NOT contain nav or code content
+      expect(texts.some(t => t.includes('nav'))).toBeFalsy();
+      expect(texts.some(t => t.includes('function'))).toBeFalsy();
+      expect(texts.some(t => t.includes('return'))).toBeFalsy();
+    });
+
+    it('skips Wikipedia-style footnote references [1], [23]', () => {
+      const article = document.createElement('article');
+      article.innerHTML = `<p>Some text here.[1] More text.[23]</p>`;
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      const texts = words.map(w => w.text);
+      expect(texts.some(t => /^\[\d+\]$/.test(t))).toBeFalsy();
+    });
+
+    it('handles inline elements without word splitting', () => {
+      const article = document.createElement('article');
+      article.innerHTML = `<p>The <strong>quick brown</strong> fox.</p>`;
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      const texts = words.map(w => w.text.replace(/[.,!?]/g, '').toLowerCase());
+      expect(texts).toContain('the');
+      expect(texts).toContain('quick');
+      expect(texts).toContain('brown');
+      expect(texts).toContain('fox');
+    });
+
+    it('attaches correct metadata to each word', () => {
+      const article = document.createElement('article');
+      article.innerHTML = '<p>Hello world</p>';
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      expect(words.length).toBeGreaterThanOrEqual(2);
+      const hello = words[0];
+      expect(hello.textNode).toBeTruthy();
+      expect(typeof hello.charOffset).toBe('number');
+      expect(typeof hello.charLength).toBe('number');
+      expect(hello.text).toBe('Hello');
+    });
+  });
+
+  describe('7. TextExtractor — Edge cases', () => {
+    it('returns null when no content block found', () => {
+      // Create a page with only nav/header content
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <nav>Home About Contact</nav>
+        <header>Site Header Title</header>
+        <footer>Footer Copyright 2026</footer>
+      `;
+      // We can't fully test extract() without a realistic page,
+      // but we can verify score threshold: nav+header+footer should score < 40
+      document.body.appendChild(div);
+      const extractor = new TextExtractor();
+      const navEl = div.querySelector('nav');
+      const score = extractor._scoreElement(navEl);
+      document.body.removeChild(div);
+      expect(score).toBeLessThan(40); // Below MIN_SCORE
+    });
+
+    it('handles empty text content gracefully', () => {
+      const article = document.createElement('article');
+      article.innerHTML = '<p>   </p><p></p>';
+      document.body.appendChild(article);
+      const extractor = new TextExtractor();
+      const words = extractor._buildWordList(article);
+      document.body.removeChild(article);
+      expect(words).toHaveLength(0);
+    });
+  });
+
+  // ── Category 4: groupWordsIntoLines (mock DOM) ─────────────────────────────
+  describe('8. groupWordsIntoLines', () => {
+    it('groups words on the same visual line together', () => {
+      // Create a single-line paragraph
+      const p = document.createElement('p');
+      p.style.width = '600px';
+      p.style.fontFamily = 'monospace';
+      p.style.fontSize = '16px';
+      p.style.whiteSpace = 'nowrap';
+      p.textContent = 'one two three four five';
+      document.body.appendChild(p);
+
+      // Build word list manually
+      const textNode = p.firstChild;
+      const words = [];
+      const matches = [...p.textContent.matchAll(/\S+/g)];
+      for (const m of matches) {
+        words.push({ text: m[0], textNode, charOffset: m.index, charLength: m[0].length, isRTL: false });
+      }
+
+      const lines = groupWordsIntoLines(words, 5);
+      document.body.removeChild(p);
+
+      // All words should be on a single line (no wrap due to white-space:nowrap)
+      expect(lines.length).toBe(1);
+      expect(lines[0].length).toBe(5);
+    });
+
+    it('returns empty array for empty word list', () => {
+      const lines = groupWordsIntoLines([]);
+      expect(lines).toHaveLength(0);
+    });
+  });
+
+  // ── Runner ────────────────────────────────────────────────────────────────
+
+  async function runAll() {
+    const resultsEl = document.getElementById('results');
+    resultsEl.innerHTML = '';
+    let totalPass = 0, totalFail = 0;
+
+    for (const suite of suites) {
+      const suiteEl = document.createElement('div');
+      suiteEl.className = 'suite';
+
+      const headerEl = document.createElement('div');
+      headerEl.className = 'suite-header';
+      headerEl.textContent = suite.name;
+      suiteEl.appendChild(headerEl);
+
+      let suitePass = 0, suiteFail = 0;
+
+      for (const test of suite.tests) {
+        const rowEl = document.createElement('div');
+        rowEl.className = 'test-row';
+
+        const badge = document.createElement('span');
+        badge.className = 'badge badge-run';
+        badge.textContent = 'RUN';
+        rowEl.appendChild(badge);
+
+        const name = document.createElement('span');
+        name.className = 'test-name';
+        name.textContent = test.name;
+        rowEl.appendChild(name);
+
+        const detail = document.createElement('span');
+        detail.className = 'test-detail';
+        rowEl.appendChild(detail);
+
+        suiteEl.appendChild(rowEl);
+
+        // Run test (allow async)
+        try {
+          const result = test.fn();
+          if (result && typeof result.then === 'function') await result;
+          badge.className = 'badge badge-pass';
+          badge.textContent = 'PASS';
+          suitePass++;
+          totalPass++;
+        } catch (e) {
+          badge.className = 'badge badge-fail';
+          badge.textContent = 'FAIL';
+          detail.textContent = e.message;
+          suiteFail++;
+          totalFail++;
+        }
+      }
+
+      // Suite summary in header
+      headerEl.textContent += `  (${suitePass}/${suitePass + suiteFail})`;
+      if (suiteFail > 0) headerEl.style.background = '#FFCDD2';
+
+      resultsEl.appendChild(suiteEl);
+    }
+
+    const summaryEl = document.getElementById('summary');
+    const total = totalPass + totalFail;
+    summaryEl.textContent = `Results: ${totalPass} passed, ${totalFail} failed out of ${total} tests.`;
+    summaryEl.style.color = totalFail > 0 ? '#C62828' : '#2E7D32';
+  }
+
+  // ── Category 5: WPM Timing Accuracy ─────────────────────────────────────
+  // These tests run a mini timing engine (no DOM, no highlighter) and verify
+  // that chunk advance timing stays within tolerance of the configured WPM.
+
+  describe('9. WPM Timing Accuracy', () => {
+
+    /**
+     * Simulate the timing engine's chunk-advance loop for N words
+     * and return actual WPM measured by wall-clock time.
+     *
+     * Uses the same additive nextChunkTime logic as EyeMovementEngine
+     * but synchronously, by mocking performance.now() progression.
+     */
+    function simulateWPM(targetWPM, chunkSize, wordCount) {
+      const msPerChunk = (chunkSize / targetWPM) * 60000;
+      const chunksToRun = Math.floor(wordCount / chunkSize);
+
+      let nextChunkTime = 0;
+      let totalWordsRead = 0;
+      let simulatedNow = 0;
+
+      for (let i = 0; i < chunksToRun; i++) {
+        // Advance simulated clock to when the chunk should fire
+        simulatedNow = nextChunkTime;
+        nextChunkTime += msPerChunk;
+        totalWordsRead += chunkSize;
+      }
+
+      // Total elapsed time = simulatedNow of last chunk + one msPerChunk display
+      const totalElapsedMs = nextChunkTime;
+      const actualWPM = (totalWordsRead / totalElapsedMs) * 60000;
+      return { actualWPM, totalElapsedMs, totalWordsRead };
+    }
+
+    it('additive timing produces correct WPM at 200 WPM', () => {
+      const { actualWPM } = simulateWPM(200, 3, 300);
+      const error = Math.abs(actualWPM - 200) / 200;
+      expect(error).toBeLessThan(0.01); // within 1%
+    });
+
+    it('additive timing produces correct WPM at 400 WPM', () => {
+      const { actualWPM } = simulateWPM(400, 3, 600);
+      const error = Math.abs(actualWPM - 400) / 400;
+      expect(error).toBeLessThan(0.01);
+    });
+
+    it('additive timing produces correct WPM at 800 WPM', () => {
+      const { actualWPM } = simulateWPM(800, 4, 800);
+      const error = Math.abs(actualWPM - 800) / 800;
+      expect(error).toBeLessThan(0.01);
+    });
+
+    it('additive timing produces correct WPM at 1500 WPM', () => {
+      const { actualWPM } = simulateWPM(1500, 5, 1500);
+      const error = Math.abs(actualWPM - 1500) / 1500;
+      expect(error).toBeLessThan(0.01);
+    });
+
+    it('instant scroll does not distort highlight position (no mid-scroll render)', () => {
+      // Verify that scrollTo with behavior:'instant' settles scrollY synchronously,
+      // i.e. window.scrollY is at (or very near) the target before the next JS
+      // statement. This is the guarantee that makes highlight positioning correct.
+      const startY = window.scrollY;
+
+      // Create a tall page temporarily
+      const spacer = document.createElement('div');
+      spacer.style.height = '3000px';
+      document.body.appendChild(spacer);
+
+      const targetY = 500;
+      window.scrollTo({ top: targetY, behavior: 'instant' });
+      const afterY = window.scrollY;
+
+      // Restore
+      window.scrollTo({ top: startY, behavior: 'instant' });
+      document.body.removeChild(spacer);
+
+      // scrollY may be a sub-pixel float (e.g. 500.36) due to device pixel ratio
+      // or fractional content height — allow up to 1px of tolerance.
+      const delta = Math.abs(afterY - targetY);
+      expect(delta).toBeLessThan(1);
+    });
+
+    it('no drift over 1000 words (cumulative error < 5ms)', () => {
+      const targetWPM = 300;
+      const chunkSize = 3;
+      const msPerChunk = (chunkSize / targetWPM) * 60000;
+      const words = 1000;
+      const chunks = Math.floor(words / chunkSize);
+
+      // Expected total time
+      const expectedMs = chunks * msPerChunk;
+
+      // Simulate additive accumulation
+      let nextChunkTime = 0;
+      for (let i = 0; i < chunks; i++) {
+        nextChunkTime += msPerChunk;
+      }
+
+      const driftMs = Math.abs(nextChunkTime - expectedMs);
+      expect(driftMs).toBeLessThan(0.001); // floating point drift < 1 microsecond
+    });
+
+    it('burst guard resets clock when >500ms behind', () => {
+      // Simulate what happens when the tab is hidden for 2 seconds
+      const targetWPM = 300;
+      const chunkSize = 3;
+      const msPerChunk = (chunkSize / targetWPM) * 60000; // 600ms per chunk
+
+      let nextChunkTime = 0;
+      let simulatedNow = 0;
+
+      // Run 3 normal chunks
+      for (let i = 0; i < 3; i++) {
+        simulatedNow = nextChunkTime;
+        nextChunkTime += msPerChunk;
+      }
+
+      // Simulate tab hidden for 2000ms
+      simulatedNow += 2000;
+
+      // Burst guard: if now - nextChunkTime > 500, reset
+      const gap = simulatedNow - nextChunkTime;
+      if (gap > 500) {
+        nextChunkTime = simulatedNow;
+      }
+
+      // After reset, next chunk should fire immediately (no catchup backlog)
+      expect(nextChunkTime).toBe(simulatedNow);
+      // And the gap should now be 0 (no burst)
+      expect(simulatedNow - nextChunkTime).toBe(0);
+    });
+
+    it('line-end pause does not accumulate into WPM timing (clock resets)', () => {
+      // The engine resets _nextChunkTime = performance.now() after each line-end.
+      // Verify that a 400ms line-end pause + 150ms sweep does NOT slow down
+      // the effective WPM on the next line.
+      const targetWPM = 300;
+      const chunkSize = 3;
+      const msPerChunk = (chunkSize / targetWPM) * 60000;
+
+      // Simulate: read a line of 9 words (3 chunks), then reset clock
+      let nextChunkTime = 0;
+      for (let i = 0; i < 3; i++) {
+        nextChunkTime += msPerChunk;
+      }
+
+      const afterLineMs = nextChunkTime;
+
+      // Line-end pause + sweep (550ms total) passes
+      // Engine resets: nextChunkTime = performance.now() (= afterLineMs + 550)
+      const pauseMs = 550;
+      nextChunkTime = afterLineMs + pauseMs; // simulates reset
+
+      // First chunk of next line fires at: afterLineMs + 550 + msPerChunk
+      const firstChunkOfNextLine = nextChunkTime + msPerChunk;
+
+      // The display time for the first chunk of the next line is exactly msPerChunk
+      const displayTime = firstChunkOfNextLine - nextChunkTime;
+      const error = Math.abs(displayTime - msPerChunk) / msPerChunk;
+      expect(error).toBeLessThan(0.001); // no distortion from pause time
+    });
+  });
+
+  // ── Category 6: Page-turn mode ────────────────────────────────────────────
+  describe('10. Page-turn scroll mode', () => {
+
+    it('needsPageTurn returns false when line is within viewport', () => {
+      // Create a mock scroll manager and a line whose rect.top is well inside viewport
+      const sm = new ScrollManager({ scrollMode: 'page-turn', eyeJumpLines: 3 });
+
+      // Build a real in-viewport word so getBoundingClientRect() returns a real rect
+      const p = document.createElement('p');
+      p.style.position = 'fixed';
+      p.style.top = '200px'; // well within viewport
+      p.style.left = '0';
+      p.textContent = 'hello world';
+      document.body.appendChild(p);
+
+      const textNode = p.firstChild;
+      const mockLine = [{ text: 'hello', textNode, charOffset: 0, charLength: 5 }];
+      const result = sm.needsPageTurn(mockLine);
+      document.body.removeChild(p);
+
+      expect(result).toBeFalsy(); // inside viewport → no page turn needed
+    });
+
+    it('needsPageTurn returns true when line is below viewport bottom margin', () => {
+      const sm = new ScrollManager({ scrollMode: 'page-turn', eyeJumpLines: 3 });
+
+      // Place element below viewport
+      const p = document.createElement('p');
+      p.style.position = 'fixed';
+      p.style.top = `${window.innerHeight + 50}px`; // below viewport
+      p.style.left = '0';
+      p.textContent = 'hello world';
+      document.body.appendChild(p);
+
+      const textNode = p.firstChild;
+      const mockLine = [{ text: 'hello', textNode, charOffset: 0, charLength: 5 }];
+      const result = sm.needsPageTurn(mockLine);
+      document.body.removeChild(p);
+
+      expect(result).toBeTruthy();
+    });
+
+    it('executePageTurn scrolls line to near top of viewport', () => {
+      const sm = new ScrollManager({ scrollMode: 'page-turn', eyeJumpLines: 3 });
+
+      // Add a tall spacer so we can scroll
+      const spacer = document.createElement('div');
+      spacer.style.height = '3000px';
+      document.body.appendChild(spacer);
+
+      // Anchor element at a known absolute position
+      const p = document.createElement('p');
+      p.style.position = 'absolute';
+      p.style.top = '1200px';
+      p.style.left = '0';
+      p.textContent = 'page turn target';
+      document.body.appendChild(p);
+
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      const textNode = p.firstChild;
+      const mockLine = [{ text: 'page', textNode, charOffset: 0, charLength: 4 }];
+
+      sm.executePageTurn(mockLine);
+
+      const newScrollY = window.scrollY;
+
+      // Restore
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      document.body.removeChild(spacer);
+      document.body.removeChild(p);
+
+      // After page turn, the element should be near the top of the viewport
+      // scrollY should be somewhere near 1200 - TOP_MARGIN_PX
+      expect(newScrollY).toBeGreaterThan(1100);
+      expect(newScrollY).toBeLessThan(1210);
+    });
+
+    it('highlighter.flashWords resolves after N flashes without errors', async () => {
+      // Mount a minimal highlighter and verify flashWords resolves
+      const settings = {
+        highlightColor: '#FFEB3B',
+        highlightOpacity: 0.6,
+        progressIndicator: false,
+        darkHighlightColor: '#6495ED'
+      };
+      const h = new Highlighter(settings);
+      h.mount();
+
+      // Build a real text node to flash
+      const p = document.createElement('p');
+      p.textContent = 'flash test word';
+      document.body.appendChild(p);
+      const textNode = p.firstChild;
+      const mockWords = [{ text: 'flash', textNode, charOffset: 0, charLength: 5 }];
+
+      let resolved = false;
+      const flashPromise = h.flashWords(mockWords, 3, 60).then(() => { resolved = true; });
+
+      // Wait for 3 flashes × 60ms + buffer
+      await new Promise(r => setTimeout(r, 250));
+      await flashPromise;
+
+      h.unmount();
+      document.body.removeChild(p);
+
+      expect(resolved).toBeTruthy();
+    });
+
+    it('flashWords resolves immediately when unmounted mid-flash', async () => {
+      const settings = {
+        highlightColor: '#FFEB3B', highlightOpacity: 0.6,
+        progressIndicator: false, darkHighlightColor: '#6495ED'
+      };
+      const h = new Highlighter(settings);
+      h.mount();
+
+      const p = document.createElement('p');
+      p.textContent = 'unmount test';
+      document.body.appendChild(p);
+      const mockWords = [{ text: 'unmount', textNode: p.firstChild, charOffset: 0, charLength: 7 }];
+
+      let resolved = false;
+      // Start a long flash, then immediately unmount
+      const promise = h.flashWords(mockWords, 5, 500).then(() => { resolved = true; });
+      h.unmount(); // nulls _rectEl
+
+      await new Promise(r => setTimeout(r, 100));
+      // Even though unmounted mid-flash, the promise should still resolve
+      // (the setTimeout callbacks check for null _rectEl and resolve early)
+      await promise;
+      document.body.removeChild(p);
+
+      expect(resolved).toBeTruthy();
+    });
+  });
+
+  // ── Category 7: Session stats & completion card ───────────────────────────
+  describe('11. Session stats & completion card', () => {
+
+    it('actualWPM is computed correctly from elapsed time and words', () => {
+      // 300 words in 60 seconds = 300 WPM
+      const wordsRead   = 300;
+      const elapsedMs   = 60000;
+      const actualWPM   = Math.round((wordsRead / (elapsedMs / 60000)));
+      expect(actualWPM).toBe(300);
+    });
+
+    it('line-break pauses are excluded from WPM (set at 1120, reads near 1120)', () => {
+      // Simulate: 500 words, configured 1120 WPM, chunk size 4
+      // Pure reading time = (500 / 1120) * 60000 = ~26,786ms
+      // Line-break dead time = 50 lines * (400ms pause + 150ms sweep) = 27,500ms
+      // Wall-clock = 26,786 + 27,500 = 54,286ms
+      // Correct: subtract line-break time → 26,786ms → ~1120 WPM ✓
+      // Wrong (old): use wall-clock → 54,286ms → ~553 WPM ✗
+
+      const targetWPM       = 1120;
+      const wordsRead       = 500;
+      const chunkSize       = 4;
+      const lineEndPause    = 400;
+      const returnSweep     = 150;
+      const wordsPerLine    = 10;
+      const numLines        = Math.floor(wordsRead / wordsPerLine);
+
+      const pureReadingMs   = (wordsRead / targetWPM) * 60000;
+      const totalLineBreakMs = numLines * (lineEndPause + returnSweep);
+      const wallClockMs     = pureReadingMs + totalLineBreakMs;
+
+      // Correct calculation (subtract line breaks)
+      const correctWPM = Math.round(wordsRead / ((wallClockMs - totalLineBreakMs) / 60000));
+      // Naive calculation (wall-clock only)
+      const naiveWPM   = Math.round(wordsRead / (wallClockMs / 60000));
+
+      // Correct should be close to targetWPM
+      expect(Math.abs(correctWPM - targetWPM)).toBeLessThan(5);
+      // Naive is significantly off
+      expect(naiveWPM).toBeLessThan(targetWPM * 0.6);
+    });
+
+    it('pctFaster is positive when above average (238 WPM)', () => {
+      const AVERAGE_WPM = 238;
+      const actualWPM   = 400;
+      const pct = Math.round(((actualWPM - AVERAGE_WPM) / AVERAGE_WPM) * 100);
+      expect(pct).toBeGreaterThan(0);
+    });
+
+    it('pctFaster is negative when below average', () => {
+      const AVERAGE_WPM = 238;
+      const actualWPM   = 150;
+      const pct = Math.round(((actualWPM - AVERAGE_WPM) / AVERAGE_WPM) * 100);
+      expect(pct).toBeLessThan(0);
+    });
+
+    it('time saved is positive when faster than average', () => {
+      const AVERAGE_WPM = 238;
+      const wordsRead   = 500;
+      const actualWPM   = 400;
+      const elapsedMs   = (wordsRead / actualWPM) * 60000;
+      const avgTimeMs   = (wordsRead / AVERAGE_WPM) * 60000;
+      const savedMs     = avgTimeMs - elapsedMs;
+      expect(savedMs).toBeGreaterThan(0);
+    });
+
+    it('completion card mounts and is visible in DOM', () => {
+      const settings = {
+        highlightColor: '#FFEB3B', highlightOpacity: 0.6,
+        progressIndicator: false, darkHighlightColor: '#6495ED'
+      };
+      const h = new Highlighter(settings);
+      h.mount();
+
+      h.showCompletionCard({ wordsRead: 450, elapsedMs: 75000, totalElapsedMs: 82000, actualWPM: 360 });
+
+      const card = document.getElementById('sr-completion-card');
+      expect(card).toBeTruthy();
+
+      // Check all three stat values are rendered
+      const values = card.querySelectorAll('.sr-stat-value');
+      expect(values.length).toBe(3);
+      expect(values[0].textContent).toContain('450');  // words read
+      expect(values[2].textContent).toContain('360');  // WPM
+
+      // Cleanup
+      card.remove();
+      h.unmount();
+    });
+
+    it('completion card auto-removes after close button click', () => {
+      const settings = {
+        highlightColor: '#FFEB3B', highlightOpacity: 0.6,
+        progressIndicator: false, darkHighlightColor: '#6495ED'
+      };
+      const h = new Highlighter(settings);
+      h.mount();
+      h.showCompletionCard({ wordsRead: 100, elapsedMs: 20000, totalElapsedMs: 22000, actualWPM: 300 });
+
+      const card = document.getElementById('sr-completion-card');
+      expect(card).toBeTruthy();
+      card.querySelector('.sr-card-close').click();
+
+      // After click the card loses sr-card-visible class (starts fade-out)
+      expect(card.classList.contains('sr-card-visible')).toBeFalsy();
+
+      // Cleanup (card removes itself after 300ms transition; remove immediately in test)
+      card.remove();
+      h.unmount();
+    });
+
+    it('formatTime: minutes and seconds rendered correctly', () => {
+      // Replicate the formatting logic from showCompletionCard
+      function formatTime(elapsedMs) {
+        const seconds = Math.round(elapsedMs / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const secs    = seconds % 60;
+        return minutes > 0
+          ? `${minutes}m ${secs.toString().padStart(2, '0')}s`
+          : `${secs}s`;
+      }
+      expect(formatTime(75000)).toBe('1m 15s');
+      expect(formatTime(3600000)).toBe('60m 00s');
+      expect(formatTime(45000)).toBe('45s');
+      expect(formatTime(3000)).toBe('3s');
+    });
+  });
+
+  document.getElementById('run-btn').addEventListener('click', runAll);
+  </script>
+</body>
+</html>

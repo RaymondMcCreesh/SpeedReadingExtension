@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!-- Fixture 1.3: Minimal blog post with article tag, aside, prev/next nav -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Blog Post Fixture</title>
+<style>
+  body { font-family: Georgia, serif; font-size:17px; line-height:1.7; color:#222; max-width:900px; margin:0 auto; padding:20px; }
+  nav.site-nav { background:#333; color:#fff; padding:10px 20px; margin:-20px -20px 24px; font-size:13px; }
+  nav.site-nav a { color:#fff; margin-right:12px; }
+  article p { margin-bottom:16px; }
+  article h1 { font-size:32px; margin-bottom:8px; }
+  article h3 { font-size:19px; margin:24px 0 8px; }
+  aside.author-bio { background:#f0f0f0; border-left:4px solid #1565C0; padding:14px 18px; margin:24px 0; font-size:14px; }
+  .post-nav { display:flex; justify-content:space-between; margin-top:24px; font-size:14px; border-top:1px solid #ddd; padding-top:16px; }
+  footer { margin-top:40px; border-top:1px solid #eee; padding-top:12px; font-size:12px; color:#888; }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="/">Home</a>
+  <a href="/blog">Blog</a>
+  <a href="/about">About</a>
+  <a href="/contact">Contact</a>
+</nav>
+
+<!-- Main article (should be extracted) -->
+<article data-expected-block="true">
+  <h1>How to Build Habits That Actually Stick</h1>
+  <p style="color:#888;font-size:14px;">Posted on February 22, 2026 · 5 min read</p>
+
+  <p>Building lasting habits is one of the most-discussed topics in self-improvement literature, yet most people still struggle to maintain the routines they set for themselves. The gap between intention and action is wide, but understanding the mechanics of habit formation can help bridge it.</p>
+
+  <p>According to behavioral scientists, habits are formed through a three-part loop: a cue that triggers the behavior, the routine itself, and a reward that reinforces the association. Once this loop is established through repetition, the behavior becomes automatic — requiring little conscious effort to execute.</p>
+
+  <h3>Start Small, Really Small</h3>
+
+  <p>One of the most common mistakes people make when establishing new habits is starting too ambitiously. Committing to an hour of exercise every day sounds inspiring, but the high effort required creates friction that makes it easy to skip. Behavioral researcher BJ Fogg advocates for "tiny habits" — versions so small that doing them requires almost no motivation.</p>
+
+  <p>Instead of committing to an hour of reading before bed, commit to reading just one page. Instead of a forty-five-minute workout, do two push-ups. The goal at first is not the behavior itself but the identity shift that comes from showing up consistently, however briefly.</p>
+
+  <h3>Environment Design</h3>
+
+  <p>Your environment powerfully shapes your behavior. People who keep a bowl of fruit on the counter eat more fruit. People who put their running shoes by the door are more likely to go for a run. Designing your environment to make desired behaviors easy and undesirable behaviors inconvenient is one of the highest-leverage interventions available.</p>
+
+  <p>Conversely, making bad habits harder by adding friction can dramatically reduce how often they occur. Putting your phone charger in another room forces you to walk to check it, adding enough inconvenience to break the automatic reach for it during focused work sessions.</p>
+
+  <h3>Track Your Progress</h3>
+
+  <p>Habit tracking, even in its simplest form — a paper calendar with Xs marked on days you completed your habit — provides a visual record of your consistency. The motivation to maintain an unbroken chain becomes surprisingly powerful once the chain grows long enough. Missing one day feels manageable; missing two in a row starts to feel like a failed streak worth protecting.</p>
+
+  <p>The most important rule with habit tracking is never to miss twice. Missing a day is an accident. Missing two days is the beginning of a new habit — the habit of not doing the thing you intended to do.</p>
+
+  <!-- Author aside (should be excluded) -->
+  <aside class="author-bio">
+    <strong>About the Author</strong><br>
+    Jane Doe is a behavioral psychologist and writer based in London. She writes about productivity, learning, and the science of behavior change. Follow her on Twitter @janedoe.
+  </aside>
+
+  <!-- Post navigation (should be excluded) -->
+  <nav class="post-nav">
+    <a href="#">← The Science of Deep Work</a>
+    <a href="#">Morning Routines Explained →</a>
+  </nav>
+</article>
+
+<footer>
+  &copy; 2026 The Productivity Blog · All rights reserved · <a href="/privacy">Privacy</a>
+</footer>
+
+</body>
+</html>

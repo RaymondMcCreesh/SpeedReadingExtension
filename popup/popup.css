@@ -1,0 +1,144 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  width: 240px;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  color: #1a1a1a;
+  background: #fff;
+  padding: 12px;
+  user-select: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1565C0;
+}
+
+.settings-link {
+  cursor: pointer;
+  font-size: 16px;
+  color: #555;
+  text-decoration: none;
+}
+.settings-link:hover { color: #1565C0; }
+
+/* ── Status row ─────────────────────────────────────────────────────────── */
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 10px;
+  min-height: 22px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-idle    { background: #bbb; }
+.dot-reading { background: #4CAF50; animation: pulse 1.2s infinite; }
+.dot-paused  { background: #FF9800; }
+.dot-done    { background: #2196F3; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+#status-text { flex: 1; color: #444; }
+
+.progress-text {
+  font-size: 11px;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* ── Controls ───────────────────────────────────────────────────────────── */
+.controls {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 7px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms, opacity 150ms;
+}
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+.btn-primary  { background: #1565C0; color: #fff; }
+.btn-primary:not(:disabled):hover { background: #1976D2; }
+
+.btn-secondary { background: #eee; color: #333; }
+.btn-secondary:not(:disabled):hover { background: #ddd; }
+
+/* ── Fields ─────────────────────────────────────────────────────────────── */
+.field {
+  margin-bottom: 10px;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 4px;
+  color: #444;
+}
+
+.field input[type="range"] {
+  width: 100%;
+  cursor: pointer;
+  accent-color: #1565C0;
+}
+
+.field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.field-row label { color: #444; }
+
+select {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.shortcuts-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: #999;
+  text-align: center;
+}
+
+kbd {
+  display: inline-block;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-bottom-width: 2px;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-family: system-ui, sans-serif;
+  color: #444;
+}

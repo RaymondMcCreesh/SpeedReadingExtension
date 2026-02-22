@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<!-- Fixture 1.5: MDN/Python docs style with left nav sidebar, code blocks, breadcrumbs -->
+<html lang="en">
+<head><meta charset="UTF-8"><title>Documentation Fixture</title>
+<style>
+  body { margin: 0; font-family: system-ui, sans-serif; font-size:15px; }
+  .layout { display:flex; min-height:100vh; }
+  .sidebar-toc { width:240px; flex-shrink:0; background:#f8f9fa; border-right:1px solid #e0e0e0; padding:16px; font-size:13px; position:sticky; top:0; height:100vh; overflow-y:auto; }
+  .sidebar-toc h3 { font-size:12px; text-transform:uppercase; color:#666; margin-bottom:8px; }
+  .sidebar-toc ul { list-style:none; padding:0; }
+  .sidebar-toc li { padding:4px 0; }
+  .sidebar-toc a { text-decoration:none; color:#0645ad; }
+  .main-content { flex:1; padding:24px 32px; max-width:860px; }
+  .breadcrumb { font-size:12px; color:#888; margin-bottom:16px; }
+  .main-content h1 { font-size:28px; margin-bottom:12px; }
+  .main-content h2 { font-size:20px; margin:28px 0 10px; border-bottom:1px solid #eee; padding-bottom:6px; }
+  .main-content p { line-height:1.65; margin-bottom:14px; color:#333; }
+  pre { background:#f5f5f5; border:1px solid #ddd; padding:14px 16px; border-radius:5px; overflow-x:auto; font-size:13px; margin-bottom:16px; }
+  code { font-family:monospace; font-size:0.9em; background:#f0f0f0; padding:1px 4px; border-radius:3px; }
+  .note { background:#E8F5E9; border-left:4px solid #4CAF50; padding:10px 14px; margin-bottom:16px; font-size:14px; }
+  footer { background:#333; color:#aaa; padding:16px 32px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- Left nav sidebar (should be excluded) -->
+  <nav class="sidebar-toc" aria-label="Table of contents">
+    <h3>Python Documentation</h3>
+    <ul>
+      <li><a href="#">Tutorial</a></li>
+      <li><a href="#">Library Reference</a></li>
+      <li><a href="#">Language Reference</a></li>
+      <li><a href="#">Python HOWTOs</a></li>
+      <li><a href="#">Installing Python</a></li>
+      <li><a href="#">Extending &amp; Embedding</a></li>
+      <li><a href="#">Python/C API</a></li>
+    </ul>
+    <h3 style="margin-top:16px;">This page</h3>
+    <ul>
+      <li><a href="#introduction">Introduction</a></li>
+      <li><a href="#syntax">Syntax</a></li>
+      <li><a href="#examples">Examples</a></li>
+      <li><a href="#pitfalls">Common Pitfalls</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main content (should be extracted) -->
+  <main id="main-content" data-expected-block="true">
+    <div class="breadcrumb">Python » 3.12 Documentation » Library Reference » Itertools</div>
+
+    <h1>itertools — Functions creating iterators for efficient looping</h1>
+
+    <p>This module implements a number of iterator building blocks inspired by constructs from APL, Haskell, and SML. Each has been recast in a form suitable for Python. The module standardizes a core set of fast, memory efficient tools that are useful by themselves or in combination.</p>
+
+    <p>Together, they form an "iterator algebra" making it possible to construct specialized tools succinctly and efficiently in pure Python. For instance, SML provides a tabulate() tool that produces a sequence of values. In Python, tabulate() can be implemented as <code>starmap(f, enumerate(count()))</code>.</p>
+
+    <div class="note">
+      <strong>Note:</strong> The itertools module is part of the Python standard library and requires no installation.
+    </div>
+
+    <h2 id="syntax">Itertool functions</h2>
+
+    <p>The following module functions all construct and return iterators. Some provide streams of infinite length, so they should only be accessed by functions or loops that truncate the stream. Iterators are lazy by default, meaning they generate values on demand rather than computing all values upfront.</p>
+
+    <p>This lazy evaluation has important performance implications: itertools functions can process datasets that are too large to fit in memory, since they never materialize the entire sequence. Instead, each value is generated only when the iterator is advanced.</p>
+
+    <h2 id="examples">Examples</h2>
+
+    <p>The following examples demonstrate common patterns for using itertools in practice. These patterns appear frequently in data processing pipelines and can dramatically simplify code that would otherwise require nested loops or complex list comprehensions.</p>
+
+    <!-- Code block (should be excluded from word extraction) -->
+    <pre><code># chain() — concatenate multiple iterables
+from itertools import chain
+
+result = list(chain([1, 2, 3], [4, 5, 6], [7, 8, 9]))
+# [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+# combinations() — all r-length combinations
+from itertools import combinations
+print(list(combinations('ABCD', 2)))
+# [('A','B'), ('A','C'), ('A','D'), ('B','C'), ('B','D'), ('C','D')]
+</code></pre>
+
+    <p>The <code>chain()</code> function is particularly useful when you need to process multiple sequences as if they were a single sequence, without the overhead of creating a combined list. This is common in situations where you are consuming iterators from different sources or generators.</p>
+
+    <h2 id="pitfalls">Common Pitfalls</h2>
+
+    <p>One frequent mistake when using itertools is consuming an iterator multiple times. Because iterators maintain state, once exhausted they cannot be reset. If you need to iterate over the same data twice, you must either convert it to a list first or use <code>itertools.tee()</code> to create independent copies of the iterator.</p>
+
+    <p>Another common issue is creating very long chains of lazy evaluations without realizing the memory implications of the intermediate state. Each generator in the chain holds references to its inputs, which can prevent garbage collection of large data structures even when they are no longer needed by the application logic.</p>
+
+    <!-- Code block (should be excluded) -->
+    <pre><code># tee() — create N independent iterators from one
+from itertools import tee
+a, b = tee(range(10))
+print(list(a))  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+print(list(b))  # [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+</code></pre>
+
+  </main><!-- #main-content -->
+
+</div>
+
+<footer>
+  &copy; 2026 Python Software Foundation · Legal · Privacy Policy · Powered by Sphinx
+</footer>
+
+</body>
+</html>

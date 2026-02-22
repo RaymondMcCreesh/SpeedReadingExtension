@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speed Reader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="header">
+    <span class="logo">⚡ Speed Reader</span>
+    <a class="settings-link" id="open-options" title="Full settings">⚙</a>
+  </div>
+
+  <div class="status-row">
+    <div id="status-dot" class="dot dot-idle"></div>
+    <span id="status-text">Ready</span>
+    <span id="progress-text" class="progress-text"></span>
+  </div>
+
+  <div class="controls">
+    <button id="btn-toggle" class="btn btn-primary">▶ Start</button>
+    <button id="btn-stop"   class="btn btn-secondary" disabled>■ Stop</button>
+  </div>
+
+  <div class="field">
+    <label for="wpm-slider">
+      Speed: <strong id="wpm-value">300</strong> WPM
+    </label>
+    <input type="range" id="wpm-slider" min="100" max="1500" step="10" value="300">
+  </div>
+
+  <div class="field">
+    <label for="chunk-select">
+      Chunk size: <strong id="chunk-value">3</strong> words
+    </label>
+    <input type="range" id="chunk-slider" min="1" max="7" step="1" value="3">
+  </div>
+
+  <div class="field-row">
+    <label for="scroll-mode">Scroll</label>
+    <select id="scroll-mode">
+      <option value="mixed">Mixed (recommended)</option>
+      <option value="page-turn">Page turn</option>
+      <option value="eye-only">Eye only</option>
+      <option value="auto-scroll">Auto-scroll</option>
+    </select>
+  </div>
+
+  <div class="shortcuts-hint">
+    <kbd>Alt+R</kbd> start / pause &nbsp;·&nbsp; <kbd>Alt+S</kbd> stop &nbsp;·&nbsp; <kbd>Space</kbd> pause
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
