@@ -63,9 +63,9 @@ class ScrollManager {
     }
 
     if (mode === 'page-turn') {
-      // Page-turn is handled directly by the engine via needsPageTurn().
-      // Here we only do a safety scroll if the line has drifted out of view.
-      return this._ensureLineVisible(lineWords);
+      // Page-turn is handled entirely by the engine via needsPageTurn() +
+      // executePageTurn(). Never scroll mid-page — that causes the jumping.
+      return false;
     }
 
     // 'mixed': scroll every N eye-jump lines
@@ -86,7 +86,9 @@ class ScrollManager {
   needsPageTurn(lineWords) {
     const rect = this._getFirstWordRect(lineWords);
     if (!rect) return false;
-    return rect.top > window.innerHeight - this.VIEWPORT_MARGIN_PX;
+    // Turn the page only when the line is genuinely off the bottom of the
+    // visible area — not early, which would skip visible lines.
+    return rect.top >= window.innerHeight;
   }
 
   /**
